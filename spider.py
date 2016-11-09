@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 # -*- coding=utf-8 -*-
 
-import urllib.request as urllib
+import urllib.request
+import urllib.parse
 import time
 import sys
 from bs4 import BeautifulSoup
@@ -22,12 +23,13 @@ class Spider():
 
     def geturl(self, url):
         '''通过代理、模拟Magic'''
-        seq = urllib.Request(self.root+url, headers={'User-Agent': 'Magic Browser'})
+        url = urllib.parse.quote(url)
+        seq = urllib.request.Request(self.root+url, headers={'User-Agent': 'Magic Browser'})
         if self.proxy:
-            proxy = urllib.ProxyHandler(self.proxy)
-            opener = urllib.build_opener(proxy)
-            urllib.install_opener(opener)
-        response = urllib.urlopen(seq)
+            proxy = urllib.request.ProxyHandler(self.proxy)
+            opener = urllib.request.build_opener(proxy)
+            urllib.request.install_opener(opener)
+        response = urllib.request.urlopen(seq)
         res = response.read()
         self.size += sys.getsizeof(res) / 1000.0
         now = time.time()

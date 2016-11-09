@@ -2,7 +2,29 @@
 # -*- coding: utf-8 -*-
 
 from spider import Spider
-import time
+import datetime
+
+_SEASON = ['冬','冬','冬','春','春','春','夏','夏','夏','秋','秋','秋']
+
+def parse_moe_time(string):
+    """parse moegirl time format yyyy年mm月dd日起 每周wHH:MM
+    Notice that HH may be bigger than 24
+
+    :string: TODO
+    :returns: TODO
+
+    """
+    fmt = '%Y年%m月%d日起'
+    (date_str, delta_str) = string.split(' ')[:2]
+    delta_str = delta_str[3:]
+    (hours, mins) = delta_str.split(':')[:2]
+    print(date_str)
+    print(delta_str)
+    start = datetime.datetime.strptime(date_str, fmt)
+    seconds = 60*(60*int(hours)+int(mins[:2]))
+    delta = datetime.timedelta(seconds=seconds)
+    start += delta
+    return start
 
 class AniCal(Spider):
 
@@ -10,20 +32,54 @@ class AniCal(Spider):
 
     def __init__(self, proxy=None):
         """TODO: to be defined1. """
-        self.root  = 'https://zh.wikipedia.org'
-        self.url   = '/zh-cn/%E6%97%A5%E6%9C%AC%E5%8B%95%E7%95%AB%E5%88%97%E8%A1%A8_({}%E5%B9%B4)'
-        self._dict = ['date','title_zh','title','company','extra']
+        year = datetime.datetime.now().year
+        month = datetime.datetime.now().month
+        self._dict_wiki = ['date','title_zh','title','company','extra']
         # /zh-cn/日本动画列表(2016年)
-        Spider.__init__(self, self.root, proxy)
-        thisyear = time.localtime().tm_year
-        self._main_page = self.geturl(self.url.format(thisyear))
+        self.root_moe  = 'https://zh.moegirl.org'
+        self.url_moe   = '/zh/日本{}年{}季动画'.format(year,
+                                                       _SEASON[month])
+        Spider.__init__(self, self.root_moe, proxy)
+        self._moe_page = self.geturl(self.url_moe)
 
-    def parse_main(self):
-        """parse main page, get anime list.
+    def parse_moe(self):
+        """parse moegirl page
         :returns: TODO
 
         """
-        tables = self._main_page.find_all('table', class_='wikitable')
+        # 前两个是目录和导航, 后两个是参见和导航菜单
+        animes = self._moe_page('h2')[2:-2]
+        self._animes = []
+        for anime in animes:
+            content_list = anime.find_next('dl')('dd')
+            content_intro = anime.find_next('h3')
+            timetype = content_list[1].text
+            if content_intro.text == '简介':
+                intro = content_intro.next_sibling.next_sibling.text
+            else:
+                intro = ''
+            if len(content_list) == 3:
+                jpTV = content_list[2].text
+            else:
+                jpTV = ''
+            if len(content_list) == 4:
+                zhTV = content_list[3].text
+            else:
+                zhTV = ''
+            content_dict = {'title': anime.text,
+                            'datetime': parse_moe_time(timetype),
+                            'jpTV': jpTV,
+                            'zhTV': zhTV,
+                            'intro': intro
+                           }
+            self._animes.append(content_dict)
+
+    def parse_wiki(self):
+        """parse wiki page, get anime list.
+        :returns: TODO
+
+        """
+        tables = self._wiki_page.find_all('table', class_='wikitable')
         self._animes = self.parse_table(tables[:-2])
         self._ovaoads = self.parse_table([tables[-2]])
         self._movies = self.parse_table([tables[-1]])
@@ -41,14 +97,13 @@ class AniCal(Spider):
                 content = [x.text for x in line.find_all('td')]
                 if len(content) < 4:
                     continue
-                content_dict = dict(zip(self._dict, content))
+                content_dict = dict(zip(self._dict_wiki, content))
                 content_dict['url'] = line.find_all('td')[1].a['href']
                 contents.append(content_dict)
         return contents
 
 if __name__ == '__main__':
-    proxy = {'http':'127.0.0.1:1080','https':'127.0.0.1:1080'}
-    ani = AniCal(proxy)
-    ani.parse_main()
+    # proxy = {'http':'127.0.0.1:1080','https':'127.0.0.1:1080'}
+    ani = AniCal()
+    ani.parse_moe()
     print(str(ani._animes))
-
