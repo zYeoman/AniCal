@@ -3,6 +3,7 @@
 
 from spider import Spider
 import datetime
+import icalendar
 
 _SEASON = ['冬','冬','冬','春','春','春','夏','夏','夏','秋','秋','秋']
 
@@ -14,17 +15,17 @@ def parse_moe_time(string):
     :returns: TODO
 
     """
-    fmt = '%Y年%m月%d日起'
+    fmt = '%Y年%m月%d日起%z'
+    dur = 10 if '泡面番' in string else 30
     (date_str, delta_str) = string.split(' ')[:2]
     delta_str = delta_str[3:]
     (hours, mins) = delta_str.split(':')[:2]
-    print(date_str)
-    print(delta_str)
-    start = datetime.datetime.strptime(date_str, fmt)
+    start = datetime.datetime.strptime(date_str+'+0900', fmt)
     seconds = 60*(60*int(hours)+int(mins[:2]))
     delta = datetime.timedelta(seconds=seconds)
     start += delta
-    return start
+    end = start+datetime.timedelta(seconds=dur*60)
+    return {'start':start, 'end':end}
 
 class AniCal(Spider):
 
@@ -55,7 +56,7 @@ class AniCal(Spider):
             content_intro = anime.find_next('h3')
             timetype = content_list[1].text
             if content_intro.text == '简介':
-                intro = content_intro.next_sibling.next_sibling.text
+                intro = content_intro.next_sibling.next_sibling.text.strip('\n')
             else:
                 intro = ''
             if len(content_list) == 3:
@@ -73,6 +74,36 @@ class AniCal(Spider):
                             'intro': intro
                            }
             self._animes.append(content_dict)
+    def event_c(self, anime):
+        """create event of anime
+
+        :anime: TODO
+        :returns: TODO
+
+        """
+        event = icalendar.Event()
+        event['summary'] = anime['title']
+        event.add('dtstart', anime['datetime']['start'])
+        event.add('dtend', anime['datetime']['end'])
+        event['description'] = anime['intro']
+        event['location'] = anime['zhTV']
+        # TODO Make it configurable
+        event.add('rrule', {'FREQ':'WEEKLY', 'INTERVAL':1, 'COUNT':12})
+        return event
+
+    def cal_c(self, animes):
+        """create ical of animes
+
+        :animes: TODO
+        :returns: TODO
+
+        """
+        cal = icalendar.Calendar()
+        cal['prodid'] = '-//AniCal//ZH'
+        cal['version'] = '2.0'
+        for anime in animes:
+            cal.add_component(self.event_c(anime))
+        return cal
 
     def parse_wiki(self):
         """parse wiki page, get anime list.
@@ -106,4 +137,6 @@ if __name__ == '__main__':
     # proxy = {'http':'127.0.0.1:1080','https':'127.0.0.1:1080'}
     ani = AniCal()
     ani.parse_moe()
-    print(str(ani._animes))
+    cal = ani.cal_c(ani._animes)
+    with open('test.ics', 'wb') as f:
+        f.write(cal.to_ical())
