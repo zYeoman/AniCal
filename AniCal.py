@@ -102,7 +102,9 @@ class AniCal(Spider):
         cal['prodid'] = '-//AniCal//ZH'
         cal['version'] = '2.0'
         for anime in animes:
-            cal.add_component(self.event_c(anime))
+            print(anime['intro'])
+            if input(anime['title']+'y/[n]:  ') not in 'nN':
+                cal.add_component(self.event_c(anime))
         return cal
 
     def parse_wiki(self):
