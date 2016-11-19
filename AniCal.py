@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from spider import Spider
+import re
 import datetime
 import icalendar
 
@@ -18,14 +19,13 @@ def parse_moe_time(string):
     fmt = '%Y年%m月%d日起%z'
     dur = 10 if '泡面番' in string else 30
     (date_str, delta_str) = string.split(' ')[:2]
-    delta_str = delta_str[3:]
-    (hours, mins) = delta_str.split(':')[:2]
+    (hours, mins)= re.findall('[0-9]+', delta_str)[:2]
     start = datetime.datetime.strptime(date_str+'+0900', fmt)
     seconds = 60*(60*int(hours)+int(mins[:2]))
     delta = datetime.timedelta(seconds=seconds)
     start += delta
     end = start+datetime.timedelta(seconds=dur*60)
-    return {'start':start, 'end':end}
+    return {'start':start, 'end':end, 'g':'隔周' in string}
 
 class AniCal(Spider):
 
@@ -88,7 +88,10 @@ class AniCal(Spider):
         event['description'] = anime['intro']
         event['location'] = anime['zhTV']
         # TODO Make it configurable
-        event.add('rrule', {'FREQ':'WEEKLY', 'INTERVAL':1, 'COUNT':12})
+        interval = 1
+        if anime['datetime']['g']:
+            interval = 2
+        event.add('rrule', {'FREQ':'WEEKLY', 'INTERVAL':interval, 'COUNT':12})
         return event
 
     def cal_c(self, animes):
