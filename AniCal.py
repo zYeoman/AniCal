@@ -1,12 +1,44 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from spider import Spider
+'''
+AniCal : Generate anime iCal format file for calendar app(for example:Google Calendar)
+Copyright (C) 2016 Yongwen Zhuang
+
+Author        : Yongwen Zhuang
+Created       : 2016-11-08
+Last Modified : 2016-11-19
+'''
 import re
 import datetime
 import icalendar
+import urllib.request
+import urllib.parse
+from bs4 import BeautifulSoup
 
-_SEASON = ['冬','冬','冬','春','春','春','夏','夏','夏','秋','秋','秋']
+_SEASON = ['冬', '冬', '冬', '春', '春', '春', '夏', '夏', '夏', '秋', '秋', '秋']
+
+
+class Spider():
+    """Spider, get html content"""
+
+    def __init__(self, root, proxy=None):
+        self.root = root
+        self.proxy = proxy
+
+    def geturl(self, url):
+        '''通过代理、模拟Magic'''
+        url = urllib.parse.quote(url)
+        seq = urllib.request.Request(
+            self.root + url, headers={'User-Agent': 'Magic Browser'})
+        if self.proxy:
+            proxy = urllib.request.ProxyHandler(self.proxy)
+            opener = urllib.request.build_opener(proxy)
+            urllib.request.install_opener(opener)
+        response = urllib.request.urlopen(seq)
+        res = response.read()
+        return BeautifulSoup(res, 'lxml')
+
 
 def parse_moe_time(string):
     """parse moegirl time format yyyy年mm月dd日起 每周wHH:MM
@@ -19,27 +51,26 @@ def parse_moe_time(string):
     fmt = '%Y年%m月%d日起%z'
     dur = 10 if '泡面番' in string else 30
     (date_str, delta_str) = string.split(' ')[:2]
-    (hours, mins)= re.findall('[0-9]+', delta_str)[:2]
-    start = datetime.datetime.strptime(date_str+'+0900', fmt)
-    seconds = 60*(60*int(hours)+int(mins[:2]))
+    (hours, mins) = re.findall('[0-9]+', delta_str)[:2]
+    start = datetime.datetime.strptime(date_str + '+0900', fmt)
+    seconds = 60 * (60 * int(hours) + int(mins[:2]))
     delta = datetime.timedelta(seconds=seconds)
     start += delta
-    end = start+datetime.timedelta(seconds=dur*60)
-    return {'start':start, 'end':end, 'g':'隔周' in string}
+    end = start + datetime.timedelta(seconds=dur * 60)
+    return {'start': start, 'end': end, 'g': '隔周' in string}
+
 
 class AniCal(Spider):
-
     """AniCal: Dump anime info from wiki and serve iCal"""
 
     def __init__(self, proxy=None):
         """TODO: to be defined1. """
         year = datetime.datetime.now().year
         month = datetime.datetime.now().month
-        self._dict_wiki = ['date','title_zh','title','company','extra']
+        self._dict_wiki = ['date', 'title_zh', 'title', 'company', 'extra']
         # /zh-cn/日本动画列表(2016年)
-        self.root_moe  = 'https://zh.moegirl.org'
-        self.url_moe   = '/zh/日本{}年{}季动画'.format(year,
-                                                       _SEASON[month])
+        self.root_moe = 'https://zh.moegirl.org'
+        self.url_moe = '/zh/日本{}年{}季动画'.format(year, _SEASON[month])
         Spider.__init__(self, self.root_moe, proxy)
         self._moe_page = self.geturl(self.url_moe)
 
@@ -56,7 +87,8 @@ class AniCal(Spider):
             content_intro = anime.find_next('h3')
             timetype = content_list[1].text
             if content_intro.text == '简介':
-                intro = content_intro.next_sibling.next_sibling.text.strip('\n')
+                intro = content_intro.next_sibling.next_sibling.text.strip(
+                    '\n')
             else:
                 intro = ''
             if len(content_list) == 3:
@@ -67,13 +99,15 @@ class AniCal(Spider):
                 zhTV = content_list[3].text
             else:
                 zhTV = ''
-            content_dict = {'title': anime.text,
-                            'datetime': parse_moe_time(timetype),
-                            'jpTV': jpTV,
-                            'zhTV': zhTV,
-                            'intro': intro
-                           }
+            content_dict = {
+                'title': anime.text,
+                'datetime': parse_moe_time(timetype),
+                'jpTV': jpTV,
+                'zhTV': zhTV,
+                'intro': intro
+            }
             self._animes.append(content_dict)
+
     def event_c(self, anime):
         """create event of anime
 
@@ -91,7 +125,10 @@ class AniCal(Spider):
         interval = 1
         if anime['datetime']['g']:
             interval = 2
-        event.add('rrule', {'FREQ':'WEEKLY', 'INTERVAL':interval, 'COUNT':12})
+        event.add('rrule',
+                  {'FREQ': 'WEEKLY',
+                   'INTERVAL': interval,
+                   'COUNT': 12})
         return event
 
     def cal_c(self, animes):
@@ -106,7 +143,7 @@ class AniCal(Spider):
         cal['version'] = '2.0'
         for anime in animes:
             print(anime['intro'])
-            if input(anime['title']+'y/[n]:  ') not in 'nN':
+            if input(anime['title'] + 'y/[n]:  ') not in 'nN':
                 cal.add_component(self.event_c(anime))
         return cal
 
@@ -137,6 +174,7 @@ class AniCal(Spider):
                 content_dict['url'] = line.find_all('td')[1].a['href']
                 contents.append(content_dict)
         return contents
+
 
 if __name__ == '__main__':
     # proxy = {'http':'127.0.0.1:1080','https':'127.0.0.1:1080'}
