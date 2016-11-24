@@ -1,13 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
 '''
 AniCal : Generate anime iCal format file for calendar app(for example:Google Calendar)
 Copyright (C) 2016 Yongwen Zhuang
 
 Author        : Yongwen Zhuang
 Created       : 2016-11-08
-Last Modified : 2016-11-19
+Last Modified : 2016-11-24
 '''
 import re
 import datetime
@@ -44,8 +43,11 @@ def parse_moe_time(string):
     """parse moegirl time format yyyy年mm月dd日起 每周wHH:MM
     Notice that HH may be bigger than 24
 
-    :string: TODO
-    :returns: TODO
+    :string: input time string.
+    :returns: dict
+               start: datetime.datetime
+               end: datetime.datetime
+               g: bool whether 隔周
 
     """
     fmt = '%Y年%m月%d日起%z'
@@ -64,7 +66,9 @@ class AniCal(Spider):
     """AniCal: Dump anime info from wiki and serve iCal"""
 
     def __init__(self, proxy=None):
-        """TODO: to be defined1. """
+        """init AniCal
+        :proxy: proxy for example {'http':'127.0.0.1:80'}
+        """
         year = datetime.datetime.now().year
         month = datetime.datetime.now().month
         self._dict_wiki = ['date', 'title_zh', 'title', 'company', 'extra']
@@ -75,9 +79,8 @@ class AniCal(Spider):
         self._moe_page = self.geturl(self.url_moe)
 
     def parse_moe(self):
-        """parse moegirl page
-        :returns: TODO
-
+        """parse moegirl page. Generate self._animes
+        :returns: None
         """
         # 前两个是目录和导航, 后两个是参见和导航菜单
         animes = self._moe_page('h2')[2:-2]
@@ -110,10 +113,8 @@ class AniCal(Spider):
 
     def event_c(self, anime):
         """create event of anime
-
-        :anime: TODO
-        :returns: TODO
-
+        :anime: detail of anime in self._animes
+        :returns: event of iCal
         """
         event = icalendar.Event()
         event['summary'] = anime['title']
@@ -133,10 +134,8 @@ class AniCal(Spider):
 
     def cal_c(self, animes):
         """create ical of animes
-
-        :animes: TODO
-        :returns: TODO
-
+        :animes: self._animes
+        :returns: cal of iCal
         """
         cal = icalendar.Calendar()
         cal['prodid'] = '-//AniCal//ZH'
@@ -148,9 +147,8 @@ class AniCal(Spider):
         return cal
 
     def parse_wiki(self):
-        """parse wiki page, get anime list.
-        :returns: TODO
-
+        """parse wiki page, generate anime list.
+        :returns: None
         """
         tables = self._wiki_page.find_all('table', class_='wikitable')
         self._animes = self.parse_table(tables[:-2])
@@ -159,10 +157,8 @@ class AniCal(Spider):
 
     def parse_table(self, tables):
         """parse tables of animes
-
-        :tables: TODO
-        :returns: TODO
-
+        :tables: tables from wiki page
+        :returns: contents of tables
         """
         contents = []
         for table in tables:
