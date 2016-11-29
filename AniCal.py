@@ -39,29 +39,6 @@ class Spider():
         return BeautifulSoup(res, 'lxml')
 
 
-def parse_moe_time(string):
-    """parse moegirl time format yyyy年mm月dd日起 每周wHH:MM
-    Notice that HH may be bigger than 24
-
-    :string: input time string.
-    :returns: dict
-               start: datetime.datetime
-               end: datetime.datetime
-               g: bool whether 隔周
-
-    """
-    fmt = '%Y年%m月%d日起%z'
-    dur = 10 if '泡面番' in string else 30
-    (date_str, delta_str) = string.split(' ')[:2]
-    (hours, mins) = re.findall('[0-9]+', delta_str)[:2]
-    start = datetime.datetime.strptime(date_str + '+0900', fmt)
-    seconds = 60 * (60 * int(hours) + int(mins[:2]))
-    delta = datetime.timedelta(seconds=seconds)
-    start += delta
-    end = start + datetime.timedelta(seconds=dur * 60)
-    return {'start': start, 'end': end, 'g': '隔周' in string}
-
-
 class AniCal(Spider):
     """AniCal: Dump anime info from wiki and serve iCal"""
 
@@ -104,12 +81,34 @@ class AniCal(Spider):
                 zhTV = ''
             content_dict = {
                 'title': anime.text,
-                'datetime': parse_moe_time(timetype),
+                'datetime': self.parse_moe_time(timetype),
                 'jpTV': jpTV,
                 'zhTV': zhTV,
                 'intro': intro
             }
             self._animes.append(content_dict)
+
+    def parse_moe_time(self, string):
+        """parse moegirl time format yyyy年mm月dd日起 每周wHH:MM
+        Notice that HH may be bigger than 24
+
+        :string: input time string.
+        :returns: dict
+                   start: datetime.datetime
+                   end: datetime.datetime
+                   g: bool whether 隔周
+
+        """
+        fmt = '%Y年%m月%d日起%z'
+        dur = 10 if '泡面番' in string else 30
+        (date_str, delta_str) = string.split(' ')[:2]
+        (hours, mins) = re.findall('[0-9]+', delta_str)[:2]
+        start = datetime.datetime.strptime(date_str + '+0900', fmt)
+        seconds = 60 * (60 * int(hours) + int(mins[:2]))
+        delta = datetime.timedelta(seconds=seconds)
+        start += delta
+        end = start + datetime.timedelta(seconds=dur * 60)
+        return {'start': start, 'end': end, 'g': '隔周' in string}
 
     def event_c(self, anime):
         """create event of anime
