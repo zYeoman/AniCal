@@ -101,8 +101,14 @@ class AniCal(Spider):
         """
         fmt = '%Y年%m月%d日起%z'
         dur = 10 if '泡面番' in string else 30
-        (date_str, delta_str) = string.split(' ')[:2]
-        (hours, mins) = re.findall('[0-9]+', delta_str)[:2]
+        try:
+            (date_str, delta_str) = string.split(' ')[:2]
+        except:
+            return {'start': datetime.datetime.now(), 'end': datetime.datetime.now(), 'g': False}
+        try:
+            (hours, mins) = re.findall('[0-9]+', delta_str)[:2]
+        except:
+            (hours, mins) = ('0','0')
         start = datetime.datetime.strptime(date_str + '+0900', fmt)
         seconds = 60 * (60 * int(hours) + int(mins[:2]))
         delta = datetime.timedelta(seconds=seconds)
