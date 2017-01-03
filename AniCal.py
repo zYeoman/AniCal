@@ -6,7 +6,7 @@ Copyright (C) 2016 Yongwen Zhuang
 
 Author        : Yongwen Zhuang
 Created       : 2016-11-08
-Last Modified : 2016-11-24
+Last Modified : 2017-01-02
 '''
 import re
 import datetime
@@ -38,20 +38,18 @@ class Spider():
         res = response.read()
         return BeautifulSoup(res, 'lxml')
 
+class MoeParser(object):
 
-class AniCal(Spider):
-    """AniCal: Dump anime info from wiki and serve iCal"""
+    """Parser to parse moegirl"""
 
-    def __init__(self, proxy=None):
-        """init AniCal
-        :proxy: proxy for example {'http':'127.0.0.1:80'}
-        """
+    def __init__(self):
+        """TODO: to be defined1. """
+        # /zh-cn/日本动画列表(2016年)
         year = datetime.datetime.now().year
         month = datetime.datetime.now().month
-        self._dict_wiki = ['date', 'title_zh', 'title', 'company', 'extra']
-        # /zh-cn/日本动画列表(2016年)
         self.root_moe = 'https://zh.moegirl.org'
         self.url_moe = '/zh/日本{}年{}季动画'.format(year, _SEASON[month])
+        self._dict_wiki = ['date', 'title_zh', 'title', 'company', 'extra']
         Spider.__init__(self, self.root_moe, proxy)
         self._moe_page = self.geturl(self.url_moe)
 
@@ -115,6 +113,16 @@ class AniCal(Spider):
         start += delta
         end = start + datetime.timedelta(seconds=dur * 60)
         return {'start': start, 'end': end, 'g': '隔周' in string}
+
+
+class AniCal(Spider):
+    """AniCal: Dump anime info from wiki and serve iCal"""
+
+    def __init__(self, parser):
+        """init AniCal
+        :parser: parser object which return anime list
+        """
+        self._parser = parser
 
     def event_c(self, anime):
         """create event of anime
