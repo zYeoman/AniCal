@@ -6,7 +6,7 @@ Copyright (C) 2016 Yongwen Zhuang
 
 Author        : Yongwen Zhuang
 Created       : 2016-11-08
-Last Modified : 2017-01-02
+Last Modified : 2017-01-07
 '''
 import re
 import datetime
@@ -18,15 +18,23 @@ from bs4 import BeautifulSoup
 _SEASON = ['冬', '冬', '冬', '春', '春', '春', '夏', '夏', '夏', '秋', '秋', '秋']
 
 
-class Spider():
+class ParserBase():
     """Spider, get html content"""
 
     def __init__(self, root, proxy=None):
+        """Init
+        :root: root url
+        :proxy: proxy {'http':'127.0.0.1:1080'}
+        """
         self.root = root
         self.proxy = proxy
+        self._animes = None
 
     def geturl(self, url):
-        '''通过代理、模拟Magic'''
+        '''通过代理、模拟Magic
+        :url: url without root
+        :return: BeautirulSoup response
+        '''
         url = urllib.parse.quote(url)
         seq = urllib.request.Request(
             self.root + url, headers={'User-Agent': 'Magic Browser'})
@@ -38,27 +46,34 @@ class Spider():
         res = response.read()
         return BeautifulSoup(res, 'lxml')
 
-class MoeParser(object):
+    @property
+    def animes(self):
+        if self._animes is None:
+            self.parse()
+        return self._animes
 
+class MoeParser(ParserBase):
     """Parser to parse moegirl"""
 
-    def __init__(self):
-        """TODO: to be defined1. """
+    def __init__(self, proxy=None):
+        """init
+        :proxy: User proxy {'http': '127.0.0.1:1080'}
+        """
         # /zh-cn/日本动画列表(2016年)
         year = datetime.datetime.now().year
         month = datetime.datetime.now().month
-        self.root_moe = 'https://zh.moegirl.org'
-        self.url_moe = '/zh/日本{}年{}季动画'.format(year, _SEASON[month])
+        self.root = 'https://zh.moegirl.org'
+        self.url = '/zh/日本{}年{}季动画'.format(year, _SEASON[month])
         self._dict_wiki = ['date', 'title_zh', 'title', 'company', 'extra']
-        Spider.__init__(self, self.root_moe, proxy)
-        self._moe_page = self.geturl(self.url_moe)
+        ParserBase.__init__(self, self.root, proxy)
+        self._page = self.geturl(self.url)
 
-    def parse_moe(self):
+    def parse(self):
         """parse moegirl page. Generate self._animes
         :returns: None
         """
         # 前两个是目录和导航, 后两个是参见和导航菜单
-        animes = self._moe_page('h2')[2:-2]
+        animes = self._page('h2')[2:-2]
         self._animes = []
         for anime in animes:
             content_list = anime.find_next('dl')('dd')
@@ -79,23 +94,21 @@ class MoeParser(object):
                 zhTV = ''
             content_dict = {
                 'title': anime.text,
-                'datetime': self.parse_moe_time(timetype),
+                'datetime': self.parse_time(timetype),
                 'jpTV': jpTV,
                 'zhTV': zhTV,
                 'intro': intro
             }
             self._animes.append(content_dict)
 
-    def parse_moe_time(self, string):
+    def parse_time(self, string):
         """parse moegirl time format yyyy年mm月dd日起 每周wHH:MM
         Notice that HH may be bigger than 24
-
         :string: input time string.
         :returns: dict
                    start: datetime.datetime
                    end: datetime.datetime
                    g: bool whether 隔周
-
         """
         fmt = '%Y年%m月%d日起%z'
         dur = 10 if '泡面番' in string else 30
@@ -114,15 +127,13 @@ class MoeParser(object):
         end = start + datetime.timedelta(seconds=dur * 60)
         return {'start': start, 'end': end, 'g': '隔周' in string}
 
-
-class AniCal(Spider):
+class AniCal():
     """AniCal: Dump anime info from wiki and serve iCal"""
 
-    def __init__(self, parser):
+    def __init__(self):
         """init AniCal
-        :parser: parser object which return anime list
         """
-        self._parser = parser
+        pass
 
     def event_c(self, anime):
         """create event of anime
@@ -147,7 +158,6 @@ class AniCal(Spider):
 
     def cal_c(self, animes):
         """create ical of animes
-        :animes: self._animes
         :returns: cal of iCal
         """
         cal = icalendar.Calendar()
@@ -159,36 +169,16 @@ class AniCal(Spider):
                 cal.add_component(self.event_c(anime))
         return cal
 
-    def parse_wiki(self):
-        """parse wiki page, generate anime list.
-        :returns: None
+    def write(self, filename, parser):
+        """write to filename.ics
+        :filename: filename
         """
-        tables = self._wiki_page.find_all('table', class_='wikitable')
-        self._animes = self.parse_table(tables[:-2])
-        self._ovaoads = self.parse_table([tables[-2]])
-        self._movies = self.parse_table([tables[-1]])
-
-    def parse_table(self, tables):
-        """parse tables of animes
-        :tables: tables from wiki page
-        :returns: contents of tables
-        """
-        contents = []
-        for table in tables:
-            for line in table.find_all('tr')[1:]:
-                content = [x.text for x in line.find_all('td')]
-                if len(content) < 4:
-                    continue
-                content_dict = dict(zip(self._dict_wiki, content))
-                content_dict['url'] = line.find_all('td')[1].a['href']
-                contents.append(content_dict)
-        return contents
-
+        cal = ani.cal_c(parser.animes)
+        with open(filename, 'wb') as f:
+            f.write(cal.to_ical())
 
 if __name__ == '__main__':
     # proxy = {'http':'127.0.0.1:1080','https':'127.0.0.1:1080'}
+    parser = MoeParser()
     ani = AniCal()
-    ani.parse_moe()
-    cal = ani.cal_c(ani._animes)
-    with open('test.ics', 'wb') as f:
-        f.write(cal.to_ical())
+    ani.write('test.ics', parser)
