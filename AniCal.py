@@ -6,13 +6,12 @@ Copyright (C) 2016 Yongwen Zhuang
 
 Author        : Yongwen Zhuang
 Created       : 2016-11-08
-Last Modified : 2017-01-07
+Last Modified : 2017-01-09
 '''
 import re
 import datetime
 import icalendar
-import urllib.request
-import urllib.parse
+import requests
 from bs4 import BeautifulSoup
 
 _SEASON = ['冬', '冬', '冬', '春', '春', '春', '夏', '夏', '夏', '秋', '秋', '秋']
@@ -26,25 +25,20 @@ class ParserBase():
         :root: root url
         :proxy: proxy {'http':'127.0.0.1:1080'}
         """
-        self.root = root
-        self.proxy = proxy
+        self._root = root
         self._animes = None
+        self._session = requests.session()
+        self._session.proxies = proxy
+        self._session.headers = {'User-Agent': 'Magic Browser'}
 
     def geturl(self, url):
         '''通过代理、模拟Magic
         :url: url without root
         :return: BeautirulSoup response
         '''
-        url = urllib.parse.quote(url)
-        seq = urllib.request.Request(
-            self.root + url, headers={'User-Agent': 'Magic Browser'})
-        if self.proxy:
-            proxy = urllib.request.ProxyHandler(self.proxy)
-            opener = urllib.request.build_opener(proxy)
-            urllib.request.install_opener(opener)
-        response = urllib.request.urlopen(seq)
-        res = response.read()
-        return BeautifulSoup(res, 'lxml')
+        seq = self._session.get(self._root + url)
+        seq.encoding = 'utf-8'
+        return BeautifulSoup(seq.content, 'lxml')
 
     @property
     def animes(self):
