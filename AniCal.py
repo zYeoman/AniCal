@@ -58,7 +58,6 @@ class MoeParser(ParserBase):
         month = datetime.datetime.now().month
         self.root = 'https://zh.moegirl.org'
         self.url = '/zh/日本{}年{}季动画'.format(year, _SEASON[month])
-        self._dict_wiki = ['date', 'title_zh', 'title', 'company', 'extra']
         ParserBase.__init__(self, self.root, proxy)
         self._page = self.geturl(self.url)
 
@@ -134,7 +133,7 @@ class WikiParser(ParserBase):
         ParserBase.__init__(self, self.root, proxy)
         year = datetime.datetime.now().year
         self._page = self.geturl(self.url.format(year))
-        self._dict_wiki = ['date','title_zh','title','company','extra']
+        self._dict_wiki = ['date','title_zh','title','intro','extra']
 
     def parse(self):
         """parse wiki page, generate anime list.
