@@ -121,6 +121,46 @@ class MoeParser(ParserBase):
         end = start + datetime.timedelta(seconds=dur * 60)
         return {'start': start, 'end': end, 'g': '隔周' in string}
 
+class WikiParser(ParserBase):
+    """Parser to parse zh.wikipedia"""
+
+    def __init__(self, proxy=None):
+        """init
+        :proxy: User proxy {'http': '127.0.0.1:1080'}
+        """
+        self.root  = 'https://zh.wikipedia.org'
+        self.url   = '/zh-cn/%E6%97%A5%E6%9C%AC%E5%8B%95%E7%95%AB%E5%88%97%E8%A1%A8_({}%E5%B9%B4)'
+        # /zh-cn/日本动画列表(2016年)
+        ParserBase.__init__(self, self.root, proxy)
+        year = datetime.datetime.now().year
+        self._page = self.geturl(self.url.format(year))
+        self._dict_wiki = ['date','title_zh','title','company','extra']
+
+    def parse(self):
+        """parse wiki page, generate anime list.
+        :returns: None
+        """
+        tables = self._page.find_all('table', class_='wikitable')
+        self._animes = self.parse_table(tables[:-2])
+        self._ovaoads = self.parse_table([tables[-2]])
+        self._movies = self.parse_table([tables[-1]])
+
+    def parse_table(self, tables):
+        """parse tables of animes
+        :tables: tables from wiki page
+        :returns: contents of tables
+        """
+        contents = []
+        for table in tables:
+            for line in table.find_all('tr')[1:]:
+                content = [x.text for x in line.find_all('td')]
+                if len(content) < 4:
+                    continue
+                content_dict = dict(zip(self._dict_wiki, content))
+                content_dict['url'] = line.find_all('td')[1].a['href']
+                contents.append(content_dict)
+        return contents
+
 class AniCal():
     """AniCal: Dump anime info from wiki and serve iCal"""
 
@@ -172,7 +212,7 @@ class AniCal():
             f.write(cal.to_ical())
 
 if __name__ == '__main__':
-    # proxy = {'http':'127.0.0.1:1080','https':'127.0.0.1:1080'}
-    parser = MoeParser()
+    proxy = {'http':'127.0.0.1:1080','https':'127.0.0.1:1080'}
+    parser = WikiParser(proxy=proxy)
     ani = AniCal()
     ani.write('test.ics', parser)
