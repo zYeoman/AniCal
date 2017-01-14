@@ -6,15 +6,17 @@ Copyright (C) 2016-2017 Yongwen Zhuang
 
 Author        : Yongwen Zhuang
 Created       : 2017-01-11
-Last Modified : 2017-01-11
+Last Modified : 2017-01-15
 '''
 
 import re
 import datetime
+import dateutil.parser
 import requests
 from bs4 import BeautifulSoup
 
 _SEASON = ['冬', '冬', '冬', '春', '春', '春', '夏', '夏', '夏', '秋', '秋', '秋']
+_SEASON_N = ['01', '01', '01', '04', '04', '04', '07', '07', '07', '10', '10', '10']
 
 
 class ParserBase():
@@ -39,6 +41,15 @@ class ParserBase():
         seq = self._session.get(self._root + url)
         seq.encoding = 'utf-8'
         return BeautifulSoup(seq.content, 'lxml')
+
+    def getjson(self, url):
+        '''返回字典
+        :url: url without root
+        :return: dict
+        '''
+        seq = self._session.get(self._root + url)
+        seq.encoding = 'utf-8'
+        return seq.json()
 
     @property
     def animes(self):
@@ -104,7 +115,6 @@ class MoeParser(ParserBase):
                    g: bool whether 隔周
         """
         fmt = '%Y年%m月%d日起%z'
-        dur = 10 if '泡面番' in string else 30
         try:
             (date_str, delta_str) = string.split(' ')[:2]
         except:
@@ -117,8 +127,7 @@ class MoeParser(ParserBase):
         seconds = 60 * (60 * int(hours) + int(mins[:2]))
         delta = datetime.timedelta(seconds=seconds)
         start += delta
-        end = start + datetime.timedelta(seconds=dur * 60)
-        return {'start': start, 'end': end, 'g': '隔周' in string}
+        return {'start': start, 'g': '隔周' in string}
 
 class WikiParser(ParserBase):
     """Parser to parse zh.wikipedia"""
@@ -159,4 +168,38 @@ class WikiParser(ParserBase):
                 content_dict['url'] = line.find_all('td')[1].a['href']
                 contents.append(content_dict)
         return contents
+
+class BangumiParser(ParserBase):
+
+    """Parser to parse bangumi-data/bangumi-data"""
+
+    def __init__(self, proxy=None):
+        """init
+        :proxy: User proxy {'http': '127.0.0.1:1080'}
+        """
+        self.root  = 'https://cdn.rawgit.com'
+        self.url   = '/bangumi-data/bangumi-data/master/data/items/{}/{}.json'
+        ParserBase.__init__(self, self.root, proxy)
+        year = datetime.datetime.now().year
+        month = datetime.datetime.now().month
+        self._page = self.getjson(self.url.format(year, _SEASON_N[month]))
+
+    def parse(self):
+        """parse bangumi-data, generate anime list.
+        :return: None
+        """
+        self._animes = []
+        for anime in self._page:
+            if anime['begin'] == '':
+                continue
+            start = dateutil.parser.parse(anime['begin'])
+            date = {'start': start, 'g': False}
+            content_dict = {
+                'title': anime['titleTranslate']['zh-Hans'][0],
+                'datetime': date,
+                'jpTV': '',
+                'zhTV': anime['sites'][0]['site'],
+                'intro': anime['title']
+            }
+            self._animes.append(content_dict)
 

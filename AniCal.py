@@ -6,7 +6,7 @@ Copyright (C) 2017 Yongwen Zhuang
 
 Author        : Yongwen Zhuang
 Created       : 2016-11-08
-Last Modified : 2017-01-11
+Last Modified : 2017-01-15
 '''
 
 from Parser import MoeParser
@@ -25,10 +25,11 @@ class AniCal():
         :anime: detail of anime in self._animes
         :returns: event of iCal
         """
+        end = anime['datetime']['start'] + datetime.timedelta(seconds=30 * 60)
         event = icalendar.Event()
         event['summary'] = anime['title']
         event.add('dtstart', anime['datetime']['start'])
-        event.add('dtend', anime['datetime']['end'])
+        event.add('dtend', end)
         event['description'] = anime['intro']
         event['location'] = anime['zhTV']
         # TODO Make it configurable
