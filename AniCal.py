@@ -58,7 +58,7 @@ class AniCal():
         """write to filename.ics
         :filename: filename
         """
-        cal = ani.cal_c(parser.animes)
+        cal = self.cal_c(parser.animes)
         with open(filename, 'wb') as f:
             f.write(cal.to_ical())
 
