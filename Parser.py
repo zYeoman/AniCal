@@ -6,7 +6,7 @@ Copyright (C) 2016-2017 Yongwen Zhuang
 
 Author        : Yongwen Zhuang
 Created       : 2017-01-11
-Last Modified : 2017-01-15
+Last Modified : 2017-01-20
 '''
 
 import re
@@ -15,8 +15,18 @@ import dateutil.parser
 import requests
 from bs4 import BeautifulSoup
 
-_SEASON = ['冬', '冬', '冬', '春', '春', '春', '夏', '夏', '夏', '秋', '秋', '秋']
-_SEASON_N = ['01', '01', '01', '04', '04', '04', '07', '07', '07', '10', '10', '10']
+_SEASON = [
+    '冬', '冬', '冬',
+    '春', '春', '春',
+    '夏', '夏', '夏',
+    '秋', '秋', '秋'
+]
+_SEASON_N = [
+    '01', '01', '01',
+    '04', '04', '04',
+    '07', '07', '07',
+    '10', '10', '10'
+]
 
 
 class ParserBase():
@@ -51,11 +61,20 @@ class ParserBase():
         seq.encoding = 'utf-8'
         return seq.json()
 
+    def parse(self):
+        '''virtual method parse
+        '''
+        raise NotImplementedError
+
     @property
     def animes(self):
+        """property anime list
+        :return: anime list.
+        """
         if self._animes is None:
             self.parse()
         return self._animes
+
 
 class MoeParser(ParserBase):
     """Parser to parse moegirl"""
@@ -118,16 +137,17 @@ class MoeParser(ParserBase):
         try:
             (date_str, delta_str) = string.split(' ')[:2]
         except:
-            return {'start': datetime.datetime.now(), 'end': datetime.datetime.now(), 'g': False}
+            return {'start': datetime.datetime.now(), 'g': False}
         try:
             (hours, mins) = re.findall('[0-9]+', delta_str)[:2]
         except:
-            (hours, mins) = ('0','0')
+            (hours, mins) = ('0', '0')
         start = datetime.datetime.strptime(date_str + '+0900', fmt)
         seconds = 60 * (60 * int(hours) + int(mins[:2]))
         delta = datetime.timedelta(seconds=seconds)
         start += delta
         return {'start': start, 'g': '隔周' in string}
+
 
 class WikiParser(ParserBase):
     """Parser to parse zh.wikipedia"""
@@ -136,13 +156,16 @@ class WikiParser(ParserBase):
         """init
         :proxy: User proxy {'http': '127.0.0.1:1080'}
         """
-        self.root  = 'https://zh.wikipedia.org'
-        self.url   = '/zh-cn/%E6%97%A5%E6%9C%AC%E5%8B%95%E7%95%AB%E5%88%97%E8%A1%A8_({}%E5%B9%B4)'
+        self.root = 'https://zh.wikipedia.org'
+        self.url = '/zh-cn/日本動畫列表_({}年)'
         # /zh-cn/日本动画列表(2016年)
         ParserBase.__init__(self, self.root, proxy)
         year = datetime.datetime.now().year
         self._page = self.geturl(self.url.format(year))
-        self._dict_wiki = ['date','title_zh','title','intro','extra']
+        print(self._page)
+        self._dict_wiki = ['date', 'title_zh', 'title', 'intro', 'extra']
+        self._ovaoads = None
+        self._movies = None
 
     def parse(self):
         """parse wiki page, generate anime list.
@@ -169,6 +192,7 @@ class WikiParser(ParserBase):
                 contents.append(content_dict)
         return contents
 
+
 class BangumiParser(ParserBase):
 
     """Parser to parse bangumi-data/bangumi-data"""
@@ -177,8 +201,8 @@ class BangumiParser(ParserBase):
         """init
         :proxy: User proxy {'http': '127.0.0.1:1080'}
         """
-        self.root  = 'https://cdn.rawgit.com'
-        self.url   = '/bangumi-data/bangumi-data/master/data/items/{}/{}.json'
+        self.root = 'https://cdn.rawgit.com'
+        self.url = '/bangumi-data/bangumi-data/master/data/items/{}/{}.json'
         ParserBase.__init__(self, self.root, proxy)
         year = datetime.datetime.now().year
         month = datetime.datetime.now().month
@@ -202,4 +226,3 @@ class BangumiParser(ParserBase):
                 'intro': anime['title']
             }
             self._animes.append(content_dict)
-
