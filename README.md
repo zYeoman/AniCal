@@ -25,4 +25,4 @@ Add test.ics to your favourite calendar app(Google calendar or Outlook etc.)
 
 ----
 
-Copyright (C) 2016 Yongwen Zhuang
+Copyright (C) 2016-2017 Yongwen Zhuang

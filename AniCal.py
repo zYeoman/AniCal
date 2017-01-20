@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 '''
 AniCal : Generate anime iCal format file for calendar app(eg. Google Calendar)
-Copyright (C) 2017 Yongwen Zhuang
+Copyright (C) 2016-2017 Yongwen Zhuang
 
 Author        : Yongwen Zhuang
 Created       : 2016-11-08
