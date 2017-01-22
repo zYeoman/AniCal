@@ -4,6 +4,11 @@
 # Created       : 2017-01-20
 # Last Modified : 2017-01-20
 
+PYLINT = pylint
+PYLINTFLAGS = -rn
+
+PYTHONFILES := $(wildcard *.py ./Parser/*.py)
+
 init:
 	pip install -r requirements.txt
 
@@ -12,6 +17,11 @@ test:
 
 install:
 	python setup.py install
+
+lint: $(patsubst %.py,%.pylint,$(PYTHONFILES))
+
+%.pylint:
+	-$(PYLINT) $(PYLINTFLAGS) $*.py
 
 clean:
 	rm -rf build/
