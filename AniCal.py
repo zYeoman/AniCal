@@ -6,7 +6,7 @@ Copyright (C) 2016-2017 Yongwen Zhuang
 
 Author        : Yongwen Zhuang
 Created       : 2016-11-08
-Last Modified : 2017-01-20
+Last Modified : 2017-01-22
 '''
 
 import datetime
@@ -19,17 +19,15 @@ def event_c(anime):
     :anime: detail of anime in self._animes
     :returns: event of iCal
     """
-    end = anime['datetime']['start'] + datetime.timedelta(seconds=30 * 60)
+    start = anime['datetime']['start']
+    end = start + datetime.timedelta(seconds=30 * 60)
     event = icalendar.Event()
     event['summary'] = anime['title']
-    event.add('dtstart', anime['datetime']['start'])
+    event.add('dtstart', start)
     event.add('dtend', end)
     event['description'] = anime['intro']
-    event['location'] = anime['zhTV']
-    # TODO Make it configurable
-    interval = 1
-    if anime['datetime']['g']:
-        interval = 2
+    event['location'] = anime['site']
+    interval = anime['datetime']['interval']
     event.add('rrule',
               {'FREQ': 'WEEKLY',
                'INTERVAL': interval,
