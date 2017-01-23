@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-'''
+"""
 WikiParser ：Parser for AniCal. Return anime list.
 Copyright (C) 2016-2017 Yongwen Zhuang
 
 Author        : Yongwen Zhuang
 Created       : 2017-01-22
-Last Modified : 2017-01-22
-'''
+Last Modified : 2017-01-23
+"""
 
 import datetime
 
@@ -16,7 +16,6 @@ from .ParserBase import ParserBase
 
 class WikiParser(ParserBase):
     """Parser to parse zh.wikipedia"""
-
     def __init__(self, proxy=None):
         """init
         :proxy: User proxy {'http': '127.0.0.1:1080'}
