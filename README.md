@@ -9,14 +9,25 @@ Generate anime iCal format file for calendar app(for example:Google Calendar)
 
 Clone and Run 克隆并运行
 
-```python
+```shell
 git clone https://github.com/zYeoman/AniCal.git
+make
+# make install
 python3 AniCal.py
 ```
 
 Add test.ics to your favourite calendar app(Google calendar or Outlook etc.)
 
 将生成的 test.ics 添加到日历应用中。
+
+## Test/ 测试
+
+```shell
+# pylint
+make lint
+# unittest
+make test
+```
 
 ## TODO/ 展望未来
 * Web 配置页面
