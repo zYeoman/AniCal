@@ -43,7 +43,7 @@ def cal_c(animes):
     cal['version'] = '2.0'
     for anime in animes:
         print(anime['intro'])
-        if input(anime['title'] + 'y/[n]:  ') not in 'nN':
+        if input(anime['title'] + ' Y/[n]:  ') in 'yY':
             cal.add_component(event_c(anime))
     return cal
 
