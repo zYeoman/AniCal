@@ -11,7 +11,7 @@ Last Modified : 2017-01-23
 
 import datetime
 import icalendar
-from Parser import MoeParser
+from Parser import BangumiParser
 
 
 def event_c(anime):
@@ -34,6 +34,7 @@ def event_c(anime):
                'COUNT': 12})
     return event
 
+
 def cal_c(animes):
     """create ical of animes
     :returns: cal of iCal
@@ -47,6 +48,7 @@ def cal_c(animes):
             cal.add_component(event_c(anime))
     return cal
 
+
 def write(filename, parser):
     """write to filename.ics
     :filename: filename
@@ -55,6 +57,7 @@ def write(filename, parser):
     with open(filename, 'wb') as output:
         output.write(cal.to_ical())
 
+
 if __name__ == '__main__':
     # proxy = {'http':'127.0.0.1:1080','https':'127.0.0.1:1080'}
-    write('test.ics', MoeParser())
+    write('test.ics', BangumiParser())

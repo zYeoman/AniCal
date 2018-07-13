@@ -24,6 +24,7 @@ _SEASON_N = [
 
 class BangumiParser(ParserBase):
     """Parser to parse bangumi-data/bangumi-data"""
+
     def __init__(self, proxy=None):
         """init
         :proxy: User proxy {'http': '127.0.0.1:1080'}
@@ -44,12 +45,17 @@ class BangumiParser(ParserBase):
             if anime['begin'] == '':
                 continue
             start = dateutil.parser.parse(anime['begin'])
-            date = {'start': start, 'g': False}
+            date = {'start': start, 'interval': 1}
+            anime_title = anime['titleTranslate'].get(
+                'zh-Hans', [anime['title']])
+            try:
+                zhtv = anime['sites'][0]['site']
+            except IndexError:
+                zhtv = ''
             content_dict = {
-                'title': anime['titleTranslate']['zh-Hans'][0],
+                'title': anime_title[0],
                 'datetime': date,
-                'jpTV': '',
-                'zhTV': anime['sites'][0]['site'],
+                'site': zhtv,
                 'intro': anime['title']
             }
             self._animes.append(content_dict)
