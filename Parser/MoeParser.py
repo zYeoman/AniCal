@@ -24,6 +24,7 @@ _SEASON = [
 
 class MoeParser(ParserBase):
     """Parser to parse moegirl"""
+
     def __init__(self, proxy=None):
         """init
         :proxy: User proxy {'http': '127.0.0.1:1080'}
@@ -32,7 +33,7 @@ class MoeParser(ParserBase):
         year = datetime.datetime.now().year
         month = datetime.datetime.now().month
         self.root = 'https://zh.moegirl.org'
-        self.url = '/zh/日本{}年{}季动画'.format(year, _SEASON[month])
+        self.url = '/日本{}年{}季动画'.format(year, _SEASON[month])
         ParserBase.__init__(self, self.root, proxy)
         self._page = self.geturl(self.url)
 
@@ -46,6 +47,8 @@ class MoeParser(ParserBase):
         for anime in animes:
             content_list = anime.find_next('dl')('dd')
             content_intro = anime.find_next('h3')
+            if (len(content_list) <= 1):
+                continue
             timetype = content_list[1].text
             if content_intro.text == '简介':
                 intro = content_intro.next_sibling.next_sibling.text.strip(
@@ -67,6 +70,7 @@ class MoeParser(ParserBase):
                 'intro': intro
             }
             self._animes.append(content_dict)
+
 
 def parse_time(string):
     """parse moegirl time format yyyy年mm月dd日起 每周wHH:MM
