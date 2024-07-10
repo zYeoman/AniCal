@@ -12,6 +12,8 @@ Last Modified : 2017-01-23
 import datetime
 import dateutil.parser
 
+import requests
+
 from .ParserBase import ParserBase
 
 _SEASON_N = [
@@ -29,12 +31,29 @@ class BangumiParser(ParserBase):
         """init
         :proxy: User proxy {'http': '127.0.0.1:1080'}
         """
-        self.root = 'https://cdn.rawgit.com'
-        self.url = '/bangumi-data/bangumi-data/master/data/items/{}/{}.json'
-        ParserBase.__init__(self, self.root, proxy)
+        rooturls = [
+            dict(
+                root='https://raw.githubusercontent.com',
+                url='/bangumi-data/bangumi-data/master/data/items/{}/{}.json'
+            ),
+            dict(
+                root='https://cdn.jsdelivr.net',
+                url='/gh/bangumi-data/bangumi-data@master/data/items/{}/{}.json'
+            ),
+        ]
+        ParserBase.__init__(self, "", proxy)
         year = datetime.datetime.now().year
         month = datetime.datetime.now().month
-        self._page = self.getjson(self.url.format(year, _SEASON_N[month]))
+        for rooturl in rooturls:
+            url = rooturl['root'] + rooturl['url'].format(year, _SEASON_N[month])
+            try:
+                seq = self._session.get(url, timeout=10)
+            except requests.exceptions.Timeout:
+                continue
+            seq.encoding = 'utf-8'
+            self._page = seq.json()
+            break
+        # self._page = self.getjson(self.url.format(year, _SEASON_N[month]))
 
     def parse(self):
         """parse bangumi-data, generate anime list.
